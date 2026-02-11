@@ -1,10 +1,16 @@
 const winston = require('winston');
 
+// Format data object like PDF example: { caregiverId: "abc1", memberId: "xyz3" }
+const formatEventData = (data) => {
+  const parts = Object.entries(data).map(([key, value]) => `${key}: "${value}"`);
+  return `{ ${parts.join(', ')} }`;
+};
+
 // Custom format for event logging
 const eventFormat = winston.format.printf(({ level, message, timestamp, event, data }) => {
   if (event) {
     // Format for real-time events (member_added, member_updated, etc.)
-    return `[${timestamp}] EVENT: ${event} — ${JSON.stringify(data)}`;
+    return `[${timestamp}] EVENT: ${event} — ${formatEventData(data)}`;
   }
   // Standard log format - handle objects
   const msg = typeof message === 'object' ? JSON.stringify(message) : message;

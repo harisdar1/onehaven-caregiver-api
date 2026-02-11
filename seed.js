@@ -21,9 +21,15 @@ const getTimestamp = () => {
   return now.toISOString().replace('T', ' ').substring(0, 19);
 };
 
+// Helper function to format data like PDF example: { caregiverId: "abc1", memberId: "xyz3" }
+const formatEventData = (data) => {
+  const parts = Object.entries(data).map(([key, value]) => `${key}: "${value}"`);
+  return `{ ${parts.join(', ')} }`;
+};
+
 // Helper function to log events in the required format
 const logEvent = (eventName, data) => {
-  console.log(`[${getTimestamp()}] EVENT: ${eventName} — ${JSON.stringify(data)}`);
+  console.log(`[${getTimestamp()}] EVENT: ${eventName} — ${formatEventData(data)}`);
 };
 
 // Helper function to make API requests

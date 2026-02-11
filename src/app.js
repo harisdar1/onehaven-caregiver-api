@@ -7,6 +7,9 @@ const { Server } = require('socket.io');
 const connectDB = require('./config/database');
 const logger = require('./utils/logger');
 const { initializeSocketEvents } = require('./socket/events');
+const { apiLimiter } = require('./middleware/rateLimiter');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
 
 // Import routes
 const caregiverRoutes = require('./modules/caregivers/caregiver.routes');
@@ -74,7 +77,11 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes
+// Swagger documentation
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// API routes (with rate limiting)
+app.use('/api', apiLimiter);
 app.use('/api/caregivers', caregiverRoutes);
 app.use('/api/protected-members', memberRoutes);
 
@@ -115,6 +122,7 @@ const startServer = async () => {
     server.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
       logger.info(`Health check: http://localhost:${PORT}/health`);
+      logger.info(`API Docs: http://localhost:${PORT}/docs`);
       logger.info(`WebSocket ready for connections`);
     });
   } catch (error) {
