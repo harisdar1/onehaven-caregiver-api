@@ -1,50 +1,44 @@
-const jwt = require('jsonwebtoken');
+const supabase = require('../../config/supabase');
 const Caregiver = require('./caregiver.model');
 const logger = require('../../utils/logger');
 
 /**
- * Generate JWT token for a caregiver
- */
-const generateToken = (caregiverId) => {
-  return jwt.sign(
-    { id: caregiverId },
-    process.env.JWT_SECRET,
-    { expiresIn: '7d' } // Token expires in 7 days
-  );
-};
-
-/**
  * POST /api/caregivers/signup
- * Create a new caregiver account
+ * Create a new caregiver using Supabase Auth
  */
 const signup = async (req, res) => {
   try {
     const { name, email, passkey } = req.body;
 
-    // Check if caregiver already exists
-    const existingCaregiver = await Caregiver.findOne({ email });
-    if (existingCaregiver) {
+    // Create user in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password: passkey
+    });
+
+    if (authError) {
       return res.status(400).json({
         success: false,
-        message: 'Email already registered'
+        message: authError.message
       });
     }
 
-    // Create new caregiver (password is hashed in model pre-save hook)
+    // Create caregiver profile in MongoDB
     const caregiver = await Caregiver.create({
+      supabaseId: authData.user.id,
       name,
-      email,
-      passkey
+      email
     });
 
-    // Generate JWT token
-    const token = generateToken(caregiver._id);
+    logger.info(`New caregiver registered: ${email}`);
 
-    logger.info(`New caregiver registered: ${caregiver.email}`);
+    // Note: If email confirmation is enabled in Supabase, session will be null
+    // User will need to confirm email and then login
+    const token = authData.session?.access_token || null;
 
     res.status(201).json({
       success: true,
-      message: 'Caregiver registered successfully',
+      message: token ? 'Caregiver registered successfully' : 'Caregiver registered. Please check email to confirm.',
       data: {
         caregiver,
         token
@@ -62,43 +56,43 @@ const signup = async (req, res) => {
 
 /**
  * POST /api/caregivers/login
- * Authenticate caregiver and return JWT
+ * Authenticate caregiver using Supabase Auth
  */
 const login = async (req, res) => {
   try {
     const { email, passkey } = req.body;
 
-    // Find caregiver by email (include passkey for comparison)
-    const caregiver = await Caregiver.findOne({ email }).select('+passkey');
+    // Authenticate with Supabase
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password: passkey
+    });
+
+    if (authError) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+
+    // Get caregiver profile from MongoDB
+    const caregiver = await Caregiver.findOne({ supabaseId: authData.user.id });
 
     if (!caregiver) {
-      return res.status(401).json({
+      return res.status(404).json({
         success: false,
-        message: 'Invalid email or password'
+        message: 'Caregiver profile not found'
       });
     }
 
-    // Check password
-    const isMatch = await caregiver.comparePassword(passkey);
-
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password'
-      });
-    }
-
-    // Generate JWT token
-    const token = generateToken(caregiver._id);
-
-    logger.info(`Caregiver logged in: ${caregiver.email}`);
+    logger.info(`Caregiver logged in: ${email}`);
 
     res.status(200).json({
       success: true,
       message: 'Login successful',
       data: {
         caregiver,
-        token
+        token: authData.session.access_token
       }
     });
   } catch (error) {
@@ -117,7 +111,6 @@ const login = async (req, res) => {
  */
 const getProfile = async (req, res) => {
   try {
-    // req.caregiver is set by auth middleware
     res.status(200).json({
       success: true,
       data: {

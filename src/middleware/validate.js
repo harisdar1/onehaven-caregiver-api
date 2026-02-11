@@ -1,3 +1,5 @@
+const { ZodError } = require('zod');
+
 /**
  * Validation middleware using Zod
  * Validates request body against a Zod schema
@@ -13,11 +15,11 @@ const validate = (schema) => {
 
       next();
     } catch (error) {
-      // Zod validation error
-      if (error.errors) {
-        const errorMessages = error.errors.map((err) => ({
-          field: err.path.join('.'),
-          message: err.message
+      // Zod validation error (Zod v3+ uses 'issues')
+      if (error instanceof ZodError) {
+        const errorMessages = error.issues.map((issue) => ({
+          field: issue.path.join('.'),
+          message: issue.message
         }));
 
         return res.status(400).json({
@@ -27,7 +29,8 @@ const validate = (schema) => {
         });
       }
 
-      // Unknown error
+      // Unknown error - log it for debugging
+      console.error('Validation middleware error:', error);
       return res.status(500).json({
         success: false,
         message: 'Internal server error'

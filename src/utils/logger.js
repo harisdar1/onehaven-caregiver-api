@@ -6,8 +6,9 @@ const eventFormat = winston.format.printf(({ level, message, timestamp, event, d
     // Format for real-time events (member_added, member_updated, etc.)
     return `[${timestamp}] EVENT: ${event} — ${JSON.stringify(data)}`;
   }
-  // Standard log format
-  return `[${timestamp}] ${level.toUpperCase()}: ${message}`;
+  // Standard log format - handle objects
+  const msg = typeof message === 'object' ? JSON.stringify(message) : message;
+  return `[${timestamp}] ${level.toUpperCase()}: ${msg}`;
 });
 
 const logger = winston.createLogger({

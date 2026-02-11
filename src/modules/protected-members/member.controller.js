@@ -109,7 +109,7 @@ const update = async (req, res) => {
     const updatedMember = await ProtectedMember.findByIdAndUpdate(
       id,
       updateData,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     // Emit real-time event

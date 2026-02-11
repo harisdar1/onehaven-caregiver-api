@@ -1,13 +1,13 @@
-const jwt = require('jsonwebtoken');
+const supabase = require('../config/supabase');
 const Caregiver = require('../modules/caregivers/caregiver.model');
 
 /**
  * Auth middleware - protects routes that require authentication
- * Verifies JWT token and attaches caregiver to request
+ * Verifies Supabase JWT token and attaches caregiver to request
  */
 const auth = async (req, res, next) => {
   try {
-    // 1. Get token from Authorization header
+    // Get token from Authorization header
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -17,47 +17,38 @@ const auth = async (req, res, next) => {
       });
     }
 
-    // 2. Extract token (remove "Bearer " prefix)
+    // Extract token
     const token = authHeader.split(' ')[1];
 
-    // 3. Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Verify token with Supabase
+    const { data: { user }, error } = await supabase.auth.getUser(token);
 
-    // 4. Find caregiver in database
-    const caregiver = await Caregiver.findById(decoded.id);
+    if (error || !user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired token'
+      });
+    }
+
+    // Find caregiver in MongoDB by Supabase ID
+    const caregiver = await Caregiver.findOne({ supabaseId: user.id });
 
     if (!caregiver) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid token. Caregiver not found.'
+        message: 'Caregiver not found'
       });
     }
 
-    // 5. Attach caregiver to request object
+    // Attach caregiver to request
     req.caregiver = caregiver;
+    req.supabaseUser = user;
 
-    // 6. Continue to next middleware/controller
     next();
   } catch (error) {
-    // Token is invalid or expired
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid token.'
-      });
-    }
-
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        success: false,
-        message: 'Token expired. Please login again.'
-      });
-    }
-
-    // Unknown error
     return res.status(500).json({
       success: false,
-      message: 'Authentication failed.'
+      message: 'Authentication failed'
     });
   }
 };
