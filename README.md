@@ -117,6 +117,11 @@ src/
 - Passwords managed by Supabase (not stored in MongoDB)
 - MongoDB stores caregiver profile linked by `supabaseId`
 
+### Identifier & Passkey Mapping
+- `id`: MongoDB caregiver profile identifier (`_id`) returned by profile APIs
+- `supabaseId`: Supabase Auth user UUID used to map authenticated users to caregiver profiles
+- `passkey`: managed by Supabase Auth and never stored in MongoDB
+
 ### Data Access Control
 - Caregivers can only access their own protected members
 - Every query filters by `caregiverId` from authenticated user
