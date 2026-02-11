@@ -3,7 +3,7 @@ const Caregiver = require('../modules/caregivers/caregiver.model');
 
 /**
  * Auth middleware - protects routes that require authentication
- * Verifies Supabase JWT token and attaches caregiver to request
+ * Verifies Supabase token and attaches caregiver to request
  */
 const auth = async (req, res, next) => {
   try {

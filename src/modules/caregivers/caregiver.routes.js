@@ -59,7 +59,7 @@ router.post('/signup', authLimiter, validate(signupSchema), caregiverController.
  *                 example: SecurePass123
  *     responses:
  *       200:
- *         description: Login successful, returns JWT token
+ *         description: Login successful
  *       401:
  *         description: Invalid credentials
  */
