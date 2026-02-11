@@ -152,6 +152,13 @@ npm run seed
 - Supabase tokens
 - Data Isolation: Users access only their own data
 
+## Bonus Features Implemented
+
+- API rate limiting with `express-rate-limit` (global + auth-specific limits)
+- Swagger/OpenAPI docs available at `/docs`
+- RBAC-style ownership enforcement (caregivers can only access their own protected members)
+- Postman collection included (`postman_collection.json`)
+
 ## AI Usage Summary
 
 I used AI tools (Claude) during development for:
